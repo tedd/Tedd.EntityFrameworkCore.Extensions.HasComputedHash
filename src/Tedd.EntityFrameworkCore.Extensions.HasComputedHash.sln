@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36221.1 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tedd.EntityFrameworkCore.Extensions.HasComputedHash", "Tedd.EntityFrameworkCore.Extensions.HasComputedHash\Tedd.EntityFrameworkCore.Extensions.HasComputedHash.csproj", "{341FB831-D4F3-4170-80A5-C1A18AEA4C36}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{341FB831-D4F3-4170-80A5-C1A18AEA4C36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{341FB831-D4F3-4170-80A5-C1A18AEA4C36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{341FB831-D4F3-4170-80A5-C1A18AEA4C36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{341FB831-D4F3-4170-80A5-C1A18AEA4C36}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {782DE798-A577-46E2-A282-51917DA08217}
+	EndGlobalSection
+EndGlobal
