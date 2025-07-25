@@ -151,12 +151,161 @@ EF Core will generate the correct SQL to create the `Document` table with `PERSI
 
 ---
 
+## Storage Type Requirements
+
+The extension automatically handles storage type optimization based on the chosen hash algorithm. Each algorithm produces a specific hash size that determines the optimal SQL Server data type:
+
+### Supported Algorithms and Storage Types
+
+| Algorithm | Hash Size | SQL Server Type | Security Status |
+|-----------|-----------|-----------------|-----------------|
+| MD2, MD4, MD5 | 16 bytes | `BINARY(16)` | ❌ **Insecure** |
+| SHA, SHA1 | 20 bytes | `BINARY(20)` | ❌ **Insecure** |
+| SHA2_256 | 32 bytes | `BINARY(32)` | ✅ **Secure** |
+| SHA2_512 | 64 bytes | `BINARY(64)` | ✅ **Secure** |
+
+### Automatic Storage Type Management
+
+The extension automatically:
+
+1. **Validates property types**: Only `byte[]` properties can be used for computed hash columns
+2. **Sets appropriate storage size**: Automatically sets `HasMaxLength()` based on the algorithm
+3. **Enforces BINARY storage**: Ensures the SQL Server column type is `BINARY(n)` where `n` matches the hash size
+4. **Validates algorithm changes**: When changing algorithms, the storage size is automatically updated
+
+### Property Type Validation
+
+```csharp
+// ✅ Correct - byte[] property
+[ComputedHash(HashMethod.SHA2_256, nameof(Title))]
+public byte[]? ContentHash { get; private set; }
+
+// ❌ Incorrect - wrong property type
+[ComputedHash(HashMethod.SHA2_256, nameof(Title))]
+public string? ContentHash { get; private set; } // Will throw exception
+
+// ❌ Incorrect - wrong property type
+[ComputedHash(HashMethod.SHA2_256, nameof(Title))]
+public int ContentHash { get; private set; } // Will throw exception
+```
+
+### Storage Size Examples
+
+```csharp
+public class Document
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+
+    // SHA2_256 → 32 bytes → BINARY(32)
+    [ComputedHash(HashMethod.SHA2_256, nameof(Title), nameof(Content))]
+    public byte[]? ContentHash { get; private set; }
+
+    // SHA2_512 → 64 bytes → BINARY(64)
+    [ComputedHash(HashMethod.SHA2_512, nameof(Title), nameof(Content))]
+    public byte[]? FullHash { get; private set; }
+
+    // MD5 → 16 bytes → BINARY(16) (deprecated, insecure)
+    [ComputedHash(HashMethod.MD5, nameof(Title))]
+    public byte[]? LegacyHash { get; private set; }
+}
+```
+
+### Security Recommendations
+
+- **Use SHA2_256 or SHA2_512** for new applications
+- **Avoid MD2, MD4, MD5, SHA, SHA1** as they are cryptographically broken
+- **The extension marks insecure algorithms as obsolete** and will show compiler warnings
+
+---
+
+## Handling Changes and Removal
+
+The extension fully supports modifying and removing computed hash columns through migrations. Here are the supported scenarios:
+
+### 1. Modifying Computed Hash Properties
+
+You can change the algorithm or source properties of a computed hash column:
+
+```csharp
+// Original
+[ComputedHash(HashMethod.SHA2_512, nameof(Title), nameof(Content))]
+public byte[]? ContentHash { get; private set; }
+
+// Modified - algorithm changed
+[ComputedHash(HashMethod.SHA2_256, nameof(Title), nameof(Content))]
+public byte[]? ContentHash { get; private set; }
+
+// Modified - source properties changed
+[ComputedHash(HashMethod.SHA2_256, nameof(Title), nameof(Content), nameof(LastModified))]
+public byte[]? ContentHash { get; private set; }
+```
+
+### 2. Removing Computed Hash Properties
+
+You can remove the `[ComputedHash]` attribute or delete the property entirely:
+
+```csharp
+// Original
+[ComputedHash(HashMethod.SHA2_512, nameof(Title), nameof(Content))]
+public byte[]? ContentHash { get; private set; }
+
+// Modified - attribute removed, property becomes regular column
+public byte[]? ContentHash { get; set; }
+
+// Or remove the property entirely
+// public byte[]? ContentHash { get; private set; } // Property deleted
+```
+
+### 3. Converting Regular Columns to Computed Hash
+
+You can convert an existing regular column to a computed hash column:
+
+```csharp
+// Original - regular column
+public byte[]? ContentHash { get; set; }
+
+// Modified - converted to computed hash
+[ComputedHash(HashMethod.SHA2_512, nameof(Title), nameof(Content))]
+public byte[]? ContentHash { get; private set; }
+```
+
+### 4. Using Fluent API for Changes
+
+You can also use the fluent API to modify computed hash columns:
+
+```csharp
+// In OnModelCreating
+modelBuilder.Entity<Document>(entity =>
+{
+    // Remove computed hash configuration
+    entity.Property(e => e.ContentHash).HasAnnotation(AnnotationKeys.IsComputedHash, null);
+    
+    // Or modify the configuration
+    entity.HasComputedHash(
+        propertyName: nameof(Document.ContentHash),
+        algorithm: HashMethod.SHA2_256, // Changed algorithm
+        sourcePropertyNames: [nameof(Document.Title), nameof(Document.Content), nameof(Document.LastModified)]); // Added source property
+});
+```
+
+When you make these changes, EF Core will generate the appropriate migration operations:
+
+- **`AlterColumnOperation`**: For modifying existing computed hash columns
+- **`DropColumnOperation`**: For removing computed hash columns entirely
+- **`AddColumnOperation`**: For adding new computed hash columns
+
+The extension automatically handles the SQL generation for all these scenarios, ensuring that the database schema stays in sync with your model changes.
+
+---
+
 ## How It Works
 
 This library hooks into the EF Core 9 migration pipeline.
 
-1.  **`IConvention`**: The `ComputedHashConvention` discovers properties marked with the `[ComputedHash]` attribute or configured with the `.HasComputedHash()` fluent method. It adds custom annotations to the EF model.
-2.  **`IMigrationsSqlGenerator`**: A custom `CustomSqlServerMigrationsSqlGenerator` intercepts migration operations. When it sees an `AddColumnOperation` with our custom annotations, it modifies the operation to include the appropriate `HASHBYTES('ALGORITHM', ...)` SQL in the `ComputedColumnSql` property.
+1.  **`IConvention`**: The `ComputedHashConvention` discovers properties marked with the `[ComputedHash]` attribute or configured with the `.HasComputedHash()` fluent method. It adds custom annotations to the EF model and handles property removal and modification.
+2.  **`IMigrationsSqlGenerator`**: A custom `CustomSqlServerMigrationsSqlGenerator` intercepts migration operations. When it sees operations with our custom annotations, it modifies them to include the appropriate `HASHBYTES('ALGORITHM', ...)` SQL in the `ComputedColumnSql` property.
 3.  **`IDbContextOptionsExtension`**: The `.UseComputedHashes()` method registers these custom services with EF Core's dependency injection container, making the entire process seamless.
 
 ---
