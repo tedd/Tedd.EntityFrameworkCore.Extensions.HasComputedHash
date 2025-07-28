@@ -19,8 +19,11 @@ public class ComputedHashOptionsExtension : IDbContextOptionsExtension
         // Replace the default services with our custom implementations.
         services.AddSingleton<IMigrationsSqlGenerator, CustomSqlServerMigrationsSqlGenerator>();
 
-        // This is the new way to add conventions.
-        services.AddSingleton<IConvention, ComputedHashConvention>();
+        // Register the convention for each interface it implements
+        services.AddSingleton<IPropertyAddedConvention, ComputedHashConvention>();
+        services.AddSingleton<IPropertyRemovedConvention, ComputedHashConvention>();
+        services.AddSingleton<IPropertyAnnotationChangedConvention, ComputedHashConvention>();
+        services.AddSingleton<IEntityTypeRemovedConvention, ComputedHashConvention>();
     }
 
     public void Validate(IDbContextOptions options)

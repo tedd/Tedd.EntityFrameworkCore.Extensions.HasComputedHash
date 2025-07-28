@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
@@ -10,9 +11,11 @@ public static class ComputedHashDbContextOptionsBuilderExtensions
 {
     public static DbContextOptionsBuilder UseComputedHashes(this DbContextOptionsBuilder optionsBuilder)
     {
+        Debugger.Launch();
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
             .AddOrUpdateExtension(new ComputedHashOptionsExtension());
 
         return optionsBuilder;
-    }
+    } 
+   
 }

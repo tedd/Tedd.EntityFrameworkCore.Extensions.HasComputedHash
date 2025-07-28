@@ -38,7 +38,7 @@ public class CustomSqlServerMigrationsSqlGenerator : SqlServerMigrationsSqlGener
                     {
                         throw new InvalidOperationException(
                             $"Computed hash columns must use BINARY storage type. Found: {addColumnOperation.ColumnType}. " +
-                            $"For algorithm '{algorithm}', use {HashMethodExtensions.GetRecommendedSqlType(algorithm)}");
+                            $"For algorithm '{algorithm}', use {SqlHashAlgorithmExtensions.GetRecommendedSqlType(algorithm)}");
                     }
 
                     var sourceColumns = sourcePropertiesRaw.Split(',').Select(c => Dependencies.SqlGenerationHelper.DelimitIdentifier(c));
@@ -49,7 +49,7 @@ public class CustomSqlServerMigrationsSqlGenerator : SqlServerMigrationsSqlGener
                     // Ensure the column type is set to the recommended type if not already set
                     if (addColumnOperation.ColumnType == null)
                     {
-                        addColumnOperation.ColumnType = HashMethodExtensions.GetRecommendedSqlType(algorithm);
+                        addColumnOperation.ColumnType = SqlHashAlgorithmExtensions.GetRecommendedSqlType(algorithm);
                     }
                 }
             }
@@ -90,7 +90,7 @@ public class CustomSqlServerMigrationsSqlGenerator : SqlServerMigrationsSqlGener
                         {
                             throw new InvalidOperationException(
                                 $"Computed hash columns must use BINARY storage type. Found: {alterColumnOperation.ColumnType}. " +
-                                $"For algorithm '{algorithm}', use {HashMethodExtensions.GetRecommendedSqlType(algorithm)}");
+                                $"For algorithm '{algorithm}', use {SqlHashAlgorithmExtensions.GetRecommendedSqlType(algorithm)}");
                         }
 
                         var sourceColumns = sourcePropertiesRaw.Split(',').Select(c => Dependencies.SqlGenerationHelper.DelimitIdentifier(c));
@@ -101,7 +101,7 @@ public class CustomSqlServerMigrationsSqlGenerator : SqlServerMigrationsSqlGener
                         // Ensure the column type is set to the recommended type if not already set
                         if (alterColumnOperation.ColumnType == null)
                         {
-                            alterColumnOperation.ColumnType = HashMethodExtensions.GetRecommendedSqlType(algorithm);
+                            alterColumnOperation.ColumnType = SqlHashAlgorithmExtensions.GetRecommendedSqlType(algorithm);
                         }
                     }
                 }

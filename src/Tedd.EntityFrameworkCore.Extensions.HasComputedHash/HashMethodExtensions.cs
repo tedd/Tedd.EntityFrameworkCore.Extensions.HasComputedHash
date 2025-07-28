@@ -1,26 +1,27 @@
-﻿namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
+﻿#pragma warning disable CS0618 // Type or member is obsolete
+namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
 
 /// <summary>
 /// Extension methods for HashMethod enum.
 /// </summary>
-public static class HashMethodExtensions
+public static class SqlHashAlgorithmExtensions
 {
     /// <summary>
     /// Gets the byte size of the hash produced by the specified algorithm.
     /// </summary>
     /// <param name="hashMethod">The hash method.</param>
     /// <returns>The size in bytes of the hash output.</returns>
-    public static int GetHashSize(this HashMethod hashMethod)
+    public static int GetHashSize(this SqlHashAlgorithm hashMethod)
     {
         return hashMethod switch
         {
-            HashMethod.MD2 => 16,
-            HashMethod.MD4 => 16,
-            HashMethod.MD5 => 16,
-            HashMethod.SHA => 20,
-            HashMethod.SHA1 => 20,
-            HashMethod.SHA2_256 => 32,
-            HashMethod.SHA2_512 => 64,
+            SqlHashAlgorithm.SHA2_256 => 32,
+            SqlHashAlgorithm.SHA2_512 => 64,
+            SqlHashAlgorithm.SHA1 => 20,
+            SqlHashAlgorithm.SHA => 20,
+            SqlHashAlgorithm.MD5 => 16,
+            SqlHashAlgorithm.MD4 => 16,
+            SqlHashAlgorithm.MD2 => 16,
             _ => throw new ArgumentException($"Unknown hash method: {hashMethod}", nameof(hashMethod))
         };
     }
@@ -30,7 +31,7 @@ public static class HashMethodExtensions
     /// </summary>
     /// <param name="hashMethod">The hash method.</param>
     /// <returns>The recommended SQL Server data type (e.g., "BINARY(32)").</returns>
-    public static string GetRecommendedSqlType(this HashMethod hashMethod)
+    public static string GetRecommendedSqlType(this SqlHashAlgorithm hashMethod)
     {
         return $"BINARY({hashMethod.GetHashSize()})";
     }
@@ -40,17 +41,17 @@ public static class HashMethodExtensions
     /// </summary>
     /// <param name="hashMethod">The hash method.</param>
     /// <returns>True if the hash method is secure, false otherwise.</returns>
-    public static bool IsCryptographicallySecure(this HashMethod hashMethod)
+    public static bool IsCryptographicallySecure(this SqlHashAlgorithm hashMethod)
     {
         return hashMethod switch
         {
-            HashMethod.MD2 => false,
-            HashMethod.MD4 => false,
-            HashMethod.MD5 => false,
-            HashMethod.SHA => false,
-            HashMethod.SHA1 => false,
-            HashMethod.SHA2_256 => true,
-            HashMethod.SHA2_512 => true,
+            SqlHashAlgorithm.SHA2_256 => true,
+            SqlHashAlgorithm.SHA2_512 => true,
+            SqlHashAlgorithm.SHA1 => false,
+            SqlHashAlgorithm.SHA => false,
+            SqlHashAlgorithm.MD5 => false,
+            SqlHashAlgorithm.MD4 => false,
+            SqlHashAlgorithm.MD2 => false,
             _ => throw new ArgumentException($"Unknown hash method: {hashMethod}", nameof(hashMethod))
         };
     }
@@ -64,13 +65,13 @@ public static class HashMethodExtensions
     {
         return algorithm.ToUpperInvariant() switch
         {
-            "MD2" => 16,
-            "MD4" => 16,
-            "MD5" => 16,
-            "SHA" => 20,
-            "SHA1" => 20,
             "SHA2_256" => 32,
             "SHA2_512" => 64,
+            "SHA1" => 20,
+            "SHA" => 20,
+            "MD5" => 16,
+            "MD4" => 16,
+            "MD2" => 16,
             _ => throw new ArgumentException($"Unknown or unsupported hash algorithm: {algorithm}", nameof(algorithm))
         };
     }

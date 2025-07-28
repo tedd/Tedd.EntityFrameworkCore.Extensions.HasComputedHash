@@ -1,9 +1,10 @@
-﻿namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
+﻿// ReSharper disable InconsistentNaming
+namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
 
 /// <summary>
 /// Supported hash algorithms for computed hash columns.
 /// </summary>
-public enum HashMethod
+public enum SqlHashAlgorithm
 {
     /// <summary>
     /// MD2 hashing algorithm.
@@ -17,7 +18,7 @@ public enum HashMethod
     /// </para>
     /// </remarks>
     [Obsolete("Obsolete since SQL Server 2016 (13.x) and cryptographically insecure.")]
-    MD2,
+    MD2 = 1,
 
     /// <summary>
     /// MD4 hashing algorithm.
@@ -31,7 +32,7 @@ public enum HashMethod
     /// </para>
     /// </remarks>
     [Obsolete("Obsolete since SQL Server 2016 (13.x) and cryptographically insecure.")]
-    MD4,
+    MD4 = 2,
 
     /// <summary>
     /// MD5 hashing algorithm.
@@ -45,7 +46,7 @@ public enum HashMethod
     /// </para>
     /// </remarks>
     [Obsolete("Obsolete since SQL Server 2016 (13.x) and cryptographically insecure.")]
-    MD5,
+    MD5 = 3,
 
     /// <summary>
     /// SHA-1 hashing algorithm, aliased as SHA in early SQL Server versions.
@@ -59,7 +60,7 @@ public enum HashMethod
     /// </para>
     /// </remarks>
     [Obsolete("Obsolete since SQL Server 2016 (13.x) and cryptographically insecure.")]
-    SHA,
+    SHA = 4,
 
     /// <summary>
     /// SHA-1 hashing algorithm.
@@ -73,7 +74,7 @@ public enum HashMethod
     /// </para>
     /// </remarks>
     [Obsolete("Obsolete since SQL Server 2016 (13.x) and cryptographically insecure.")]
-    SHA1,
+    SHA1 = 5,
 
     /// <summary>
     /// SHA-2 256-bit hashing algorithm, available since SQL Server 2016 (13.x).
@@ -89,7 +90,7 @@ public enum HashMethod
     /// This is a cryptographically secure hash function suitable for most applications.
     /// </para>
     /// </remarks>
-    SHA2_256,
+    SHA2_256 = 6,
 
     /// <summary>
     /// SHA-2 512-bit hashing algorithm, available since SQL Server 2016 (13.x).
@@ -105,5 +106,5 @@ public enum HashMethod
     /// This is a cryptographically secure hash function with higher security than SHA2_256.
     /// </para>
     /// </remarks>
-    SHA2_512
+    SHA2_512 = 7
 }

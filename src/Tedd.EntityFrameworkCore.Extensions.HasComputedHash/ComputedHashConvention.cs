@@ -47,12 +47,11 @@ internal class ComputedHashConvention :
             propertyBuilder.HasAnnotation(AnnotationKeys.ComputedHashSourceProperties, string.Join(",", attribute.SourcePropertyNames));
 
             // Set the appropriate storage type based on the hash algorithm
-            var hashSize = HashMethodExtensions.GetHashSize(attribute.Algorithm);
+            var hashSize = SqlHashAlgorithmExtensions.GetHashSize(attribute.Algorithm);
             propertyBuilder.HasMaxLength(hashSize);
         }
     }
 
-    // Corrected signature for EF Core 9
     public void ProcessPropertyRemoved(
         IConventionTypeBaseBuilder typeBaseBuilder,
         IConventionProperty property,
@@ -62,7 +61,6 @@ internal class ComputedHashConvention :
         // The annotations will be automatically cleaned up by EF Core.
     }
 
-    // Corrected signature for EF Core 9
     public void ProcessPropertyAnnotationChanged(
         IConventionPropertyBuilder propertyBuilder,
         string name,
@@ -98,7 +96,7 @@ internal class ComputedHashConvention :
             if (!string.IsNullOrEmpty(algorithm))
             {
                 // Update the max length based on the new algorithm
-                var hashSize = HashMethodExtensions.GetHashSize(algorithm);
+                var hashSize = SqlHashAlgorithmExtensions.GetHashSize(algorithm);
                 propertyBuilder.HasMaxLength(hashSize);
             }
         }
