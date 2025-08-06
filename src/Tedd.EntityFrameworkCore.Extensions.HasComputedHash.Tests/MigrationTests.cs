@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+
 using System;
 using System.Linq;
+
 using Xunit;
 
 namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash.Tests;
@@ -17,7 +19,7 @@ public class MigrationTests
         public DateTime LastModified { get; set; }
 
         // Computed hash property using attribute
-        [ComputedHash(HashMethod.SHA2_512, nameof(Title), nameof(Content))]
+        [ComputedHash(SqlHashAlgorithm.SHA2_512, nameof(Title), nameof(Content))]
         public byte[]? ContentHash { get; private set; }
 
         // Another computed hash property
@@ -113,29 +115,29 @@ public class MigrationTests
     }
 
     [Fact]
-    public void HashMethodExtensions_ShouldWorkWithStringValues()
+    public void SqlHashAlgorithmExtensions_ShouldWorkWithStringValues()
     {
         // Test that the extensions work with string algorithm names
-        Assert.Equal(64, HashMethodExtensions.GetHashSize("SHA2_512"));
-        Assert.Equal(32, HashMethodExtensions.GetHashSize("SHA2_256"));
-        Assert.Equal(16, HashMethodExtensions.GetHashSize("MD5"));
+        Assert.Equal(64, SqlHashAlgorithmExtensions.GetHashSize("SHA2_512"));
+        Assert.Equal(32, SqlHashAlgorithmExtensions.GetHashSize("SHA2_256"));
+        Assert.Equal(16, SqlHashAlgorithmExtensions.GetHashSize("MD5"));
 
-        Assert.Equal("BINARY(64)", HashMethodExtensions.GetRecommendedSqlType("SHA2_512"));
-        Assert.Equal("BINARY(32)", HashMethodExtensions.GetRecommendedSqlType("SHA2_256"));
-        Assert.Equal("BINARY(16)", HashMethodExtensions.GetRecommendedSqlType("MD5"));
+        Assert.Equal("BINARY(64)", SqlHashAlgorithmExtensions.GetRecommendedSqlType("SHA2_512"));
+        Assert.Equal("BINARY(32)", SqlHashAlgorithmExtensions.GetRecommendedSqlType("SHA2_256"));
+        Assert.Equal("BINARY(16)", SqlHashAlgorithmExtensions.GetRecommendedSqlType("MD5"));
     }
 
     [Fact]
-    public void HashMethodExtensions_ShouldWorkWithEnumValues()
+    public void SqlHashAlgorithmExtensions_ShouldWorkWithEnumValues()
     {
         // Test that the extensions work with enum values
-        Assert.Equal(64, HashMethod.SHA2_512.GetHashSize());
-        Assert.Equal(32, HashMethod.SHA2_256.GetHashSize());
-        Assert.Equal(16, HashMethod.MD5.GetHashSize());
+        Assert.Equal(64, SqlHashAlgorithm.SHA2_512.GetHashSize());
+        Assert.Equal(32, SqlHashAlgorithm.SHA2_256.GetHashSize());
+        Assert.Equal(16, SqlHashAlgorithm.MD5.GetHashSize());
 
-        Assert.Equal("BINARY(64)", HashMethod.SHA2_512.GetRecommendedSqlType());
-        Assert.Equal("BINARY(32)", HashMethod.SHA2_256.GetRecommendedSqlType());
-        Assert.Equal("BINARY(16)", HashMethod.MD5.GetRecommendedSqlType());
+        Assert.Equal("BINARY(64)", SqlHashAlgorithm.SHA2_512.GetRecommendedSqlType());
+        Assert.Equal("BINARY(32)", SqlHashAlgorithm.SHA2_256.GetRecommendedSqlType());
+        Assert.Equal("BINARY(16)", SqlHashAlgorithm.MD5.GetRecommendedSqlType());
     }
 
     [Fact]
@@ -177,10 +179,10 @@ public class MigrationTests
     }
 
     [Fact]
-    public void HashMethodExtensions_ShouldHandleAllSupportedAlgorithms()
+    public void SqlHashAlgorithmExtensions_ShouldHandleAllSupportedAlgorithms()
     {
         // Test all supported hash methods
-        var methods = new[] { HashMethod.MD5, HashMethod.SHA2_256, HashMethod.SHA2_512 };
+        var methods = new[] { SqlHashAlgorithm.MD5, SqlHashAlgorithm.SHA2_256, SqlHashAlgorithm.SHA2_512 };
 
         foreach (var method in methods)
         {
@@ -193,4 +195,4 @@ public class MigrationTests
             Assert.True(sqlType.StartsWith("BINARY("));
         }
     }
-} 
+}

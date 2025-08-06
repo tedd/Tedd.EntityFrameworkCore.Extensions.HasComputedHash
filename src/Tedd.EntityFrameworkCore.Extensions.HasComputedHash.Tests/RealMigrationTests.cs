@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+
 using System;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Xunit;
 
 namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash.Tests;
@@ -39,7 +41,7 @@ public class RealMigrationTests : IDisposable
         {
             // Connect to master database to drop our test database
             var masterConnectionString = _connectionString.Replace($"Database={_databaseName};", "Database=master;");
-            
+
             using var connection = new SqlConnection(masterConnectionString);
             connection.Open();
 
@@ -85,7 +87,7 @@ public class RealMigrationTests : IDisposable
         public DateTime LastModified { get; set; }
 
         // Computed hash property using attribute
-        [ComputedHash(HashMethod.SHA2_512, nameof(Title), nameof(Content))]
+        [ComputedHash(SqlHashAlgorithm.SHA2_512, nameof(Title), nameof(Content))]
         public byte[]? ContentHash { get; private set; }
 
         // Another computed hash property
@@ -131,7 +133,7 @@ public class RealMigrationTests : IDisposable
     {
         // Arrange
         using var context = new RealMigrationTestDbContext(_connectionString);
-        
+
         // Create the database and apply migrations
         await context.Database.EnsureDeletedAsync();
         await context.Database.EnsureCreatedAsync();
@@ -311,8 +313,8 @@ public class RealMigrationTests : IDisposable
         Assert.NotNull(versionHashProperty);
 
         // Verify the computed hash annotations are present
-        Assert.True(contentHashProperty[AnnotationKeys.IsComputedHash] as bool? == true);
-        Assert.True(versionHashProperty[AnnotationKeys.IsComputedHash] as bool? == true);
+        Assert.True((contentHashProperty[AnnotationKeys.IsComputedHash] as bool?) == true);
+        Assert.True((versionHashProperty[AnnotationKeys.IsComputedHash] as bool?) == true);
 
         // Verify algorithm annotations
         Assert.Equal("SHA2_512", contentHashProperty[AnnotationKeys.ComputedHashAlgorithm] as string);
@@ -338,4 +340,4 @@ public class ColumnInfo
     public string DataType { get; set; } = string.Empty;
     public int MaxLength { get; set; }
     public string ComputedDefinition { get; set; } = string.Empty;
-} 
+}
