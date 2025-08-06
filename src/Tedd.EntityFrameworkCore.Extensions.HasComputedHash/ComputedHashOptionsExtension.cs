@@ -1,12 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
 
 /// <summary>
-/// The internal options extension that carries configuration and registers services.
+/// Internal options extension for service registration.
 /// </summary>
 public class ComputedHashOptionsExtension : IDbContextOptionsExtension
 {
@@ -16,10 +15,7 @@ public class ComputedHashOptionsExtension : IDbContextOptionsExtension
 
     public void ApplyServices(IServiceCollection services)
     {
-        // Replace the default services with our custom implementations.
-        services.AddSingleton<IMigrationsSqlGenerator, CustomSqlServerMigrationsSqlGenerator>();
-
-        // Register the convention for each interface it implements
+        // Register convention implementations
         services.AddSingleton<IPropertyAddedConvention, ComputedHashConvention>();
         services.AddSingleton<IPropertyRemovedConvention, ComputedHashConvention>();
         services.AddSingleton<IPropertyAnnotationChangedConvention, ComputedHashConvention>();
@@ -28,8 +24,7 @@ public class ComputedHashOptionsExtension : IDbContextOptionsExtension
 
     public void Validate(IDbContextOptions options)
     {
-        // Can be used to validate that the extension is used correctly,
-        // e.g., that a relational provider is also configured.
+        // Optional: Validate relational provider presence if requisite.
     }
 
     private sealed class ExtensionInfo(IDbContextOptionsExtension extension) : DbContextOptionsExtensionInfo(extension)
@@ -39,6 +34,6 @@ public class ComputedHashOptionsExtension : IDbContextOptionsExtension
         public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other) => true;
         public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)
             => debugInfo["Tedd.Extensions:ComputedHash"] = "1";
-        public override string LogFragment => "using ComputedHashes";
+        public override string LogFragment => "using ComputedHashes ";
     }
 }

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
 
 /// <summary>
-/// The public, user-facing extension method to enable the functionality.
+/// Public extension method to enable computed hash functionality.
 /// </summary>
 public static class ComputedHashDbContextOptionsBuilderExtensions
 {
@@ -14,8 +14,6 @@ public static class ComputedHashDbContextOptionsBuilderExtensions
         Debugger.Launch();
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
             .AddOrUpdateExtension(new ComputedHashOptionsExtension());
-
         return optionsBuilder;
-    } 
-   
+    }
 }

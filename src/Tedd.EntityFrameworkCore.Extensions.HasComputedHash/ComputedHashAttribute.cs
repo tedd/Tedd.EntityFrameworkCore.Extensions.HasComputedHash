@@ -11,6 +11,7 @@ public sealed class ComputedHashAttribute : Attribute
         Algorithm = algorithm;
         SourcePropertyNames = sourcePropertyNames;
     }
+
     public ComputedHashAttribute(SqlHashAlgorithm algorithm, params string[] sourcePropertyNames)
     {
         Algorithm = algorithm.ToString();

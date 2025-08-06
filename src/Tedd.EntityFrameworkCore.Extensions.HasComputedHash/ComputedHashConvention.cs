@@ -1,15 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System.Reflection;
 
 namespace Tedd.EntityFrameworkCore.Extensions.HasComputedHash;
 
 /// <summary>
 /// An EF Core convention that discovers properties with the [ComputedHash] attribute
-/// and applies the corresponding annotations to the model.
-/// This implementation is compatible with EF Core 9.
+/// and configures them as persisted computed columns using standard relational annotations.
+/// Compatible with EF Core 9.0.
 /// </summary>
 internal class ComputedHashConvention :
     IPropertyAddedConvention,
@@ -22,34 +23,37 @@ internal class ComputedHashConvention :
         IConventionContext<IConventionPropertyBuilder> context)
     {
         var memberInfo = propertyBuilder.Metadata.GetIdentifyingMemberInfo();
-
         if (memberInfo is null) return;
 
         var attribute = memberInfo.GetCustomAttribute<ComputedHashAttribute>();
-        if (attribute != null)
+        if (attribute == null) return;
+
+        if (attribute.SourcePropertyNames == null || attribute.SourcePropertyNames.Count == 0)
         {
-            if (attribute.SourcePropertyNames is null || attribute.SourcePropertyNames.Count == 0)
-            {
-                var property = propertyBuilder.Metadata;
-                throw new InvalidOperationException($"The [ComputedHash] attribute on {property.DeclaringEntityType.DisplayName()}.{property.Name} must have at least one source property.");
-            }
-
-            // Validate that the property is of type byte[]
-            if (propertyBuilder.Metadata.ClrType != typeof(byte[]))
-            {
-                var property = propertyBuilder.Metadata;
-                throw new InvalidOperationException($"The [ComputedHash] attribute on {property.DeclaringEntityType.DisplayName()}.{property.Name} can only be applied to properties of type byte[]. Found type: {property.ClrType.Name}");
-            }
-
-            // Set the computed hash annotations
-            propertyBuilder.HasAnnotation(AnnotationKeys.IsComputedHash, true);
-            propertyBuilder.HasAnnotation(AnnotationKeys.ComputedHashAlgorithm, attribute.Algorithm);
-            propertyBuilder.HasAnnotation(AnnotationKeys.ComputedHashSourceProperties, string.Join(",", attribute.SourcePropertyNames));
-
-            // Set the appropriate storage type based on the hash algorithm
-            var hashSize = SqlHashAlgorithmExtensions.GetHashSize(attribute.Algorithm);
-            propertyBuilder.HasMaxLength(hashSize);
+            var property = propertyBuilder.Metadata;
+            throw new InvalidOperationException($"The [ComputedHash] attribute on {property.DeclaringEntityType.DisplayName()}.{property.Name} must specify at least one source property.");
         }
+
+        if (propertyBuilder.Metadata.ClrType != typeof(byte[]))
+        {
+            var property = propertyBuilder.Metadata;
+            throw new InvalidOperationException($"The [ComputedHash] attribute on {property.DeclaringEntityType.DisplayName()}.{property.Name} applies exclusively to byte[] properties. Encountered type: {property.ClrType.Name}.");
+        }
+
+        // Apply custom annotations for validation
+        propertyBuilder.HasAnnotation(AnnotationKeys.IsComputedHash, true);
+        propertyBuilder.HasAnnotation(AnnotationKeys.ComputedHashAlgorithm, attribute.Algorithm);
+        propertyBuilder.HasAnnotation(AnnotationKeys.ComputedHashSourceProperties, string.Join(",", attribute.SourcePropertyNames));
+
+        // Configure as persisted computed column using standard relational annotations
+        var sourceColumns = attribute.SourcePropertyNames.Select(c => $"[{c}]");
+        var concatExpression = string.Join(" + '|' + ", sourceColumns.Select(c => $"ISNULL(CONVERT(NVARCHAR(MAX), {c}), N'')"));
+        var computedSql = $"HASHBYTES('{attribute.Algorithm}', {concatExpression})";
+
+        propertyBuilder.ValueGenerated(ValueGenerated.OnAddOrUpdate);
+        propertyBuilder.HasColumnType(SqlHashAlgorithmExtensions.GetRecommendedSqlType(attribute.Algorithm));
+        propertyBuilder.HasAnnotation(RelationalAnnotationNames.ComputedColumnSql, computedSql);
+        propertyBuilder.HasAnnotation(RelationalAnnotationNames.IsStored, true);
     }
 
     public void ProcessPropertyRemoved(
@@ -57,8 +61,7 @@ internal class ComputedHashConvention :
         IConventionProperty property,
         IConventionContext<IConventionProperty> context)
     {
-        // When a property is removed, we don't need to do anything special.
-        // The annotations will be automatically cleaned up by EF Core.
+        // Annotations auto-cleanse upon removal; no intervention required.
     }
 
     public void ProcessPropertyAnnotationChanged(
@@ -68,37 +71,39 @@ internal class ComputedHashConvention :
         IConventionAnnotation? oldAnnotation,
         IConventionContext<IConventionAnnotation> context)
     {
-        // Handle changes to computed hash annotations
         if (name == AnnotationKeys.IsComputedHash)
         {
-            // The annotation value is now accessed via the 'Value' property.
             var isComputedHash = annotation?.Value as bool?;
             var wasComputedHash = oldAnnotation?.Value as bool?;
 
-            // If a property is being converted from a computed hash to a regular property
             if (wasComputedHash == true && isComputedHash != true)
             {
-                // Remove the computed hash annotations
+                // Demote to conventional property
                 propertyBuilder.HasAnnotation(AnnotationKeys.ComputedHashAlgorithm, null);
                 propertyBuilder.HasAnnotation(AnnotationKeys.ComputedHashSourceProperties, null);
-
-                // Remove the max length constraint since it's no longer a computed hash
-                propertyBuilder.HasMaxLength(null);
+                propertyBuilder.HasAnnotation(RelationalAnnotationNames.ComputedColumnSql, null);
+                propertyBuilder.HasAnnotation(RelationalAnnotationNames.IsStored, null);
+                propertyBuilder.ValueGenerated(ValueGenerated.Never);
+                propertyBuilder.HasColumnType(null); // Revert to default
             }
-            // If a property is being converted from a regular property to a computed hash,
-            // the logic is handled by ProcessPropertyAdded or fluent API calls,
-            // so no action is needed here.
         }
-        // Handle changes to the algorithm annotation
-        else if (name == AnnotationKeys.ComputedHashAlgorithm)
+        else if (name == AnnotationKeys.ComputedHashAlgorithm || name == AnnotationKeys.ComputedHashSourceProperties)
         {
-            var algorithm = annotation?.Value as string;
-            if (!string.IsNullOrEmpty(algorithm))
-            {
-                // Update the max length based on the new algorithm
-                var hashSize = SqlHashAlgorithmExtensions.GetHashSize(algorithm);
-                propertyBuilder.HasMaxLength(hashSize);
-            }
+            if ((propertyBuilder.Metadata[AnnotationKeys.IsComputedHash] as bool?) != true) return;
+
+            var algorithm = propertyBuilder.Metadata[AnnotationKeys.ComputedHashAlgorithm] as string;
+            var sourcesRaw = propertyBuilder.Metadata[AnnotationKeys.ComputedHashSourceProperties] as string;
+
+            if (string.IsNullOrEmpty(algorithm) || string.IsNullOrEmpty(sourcesRaw)) return;
+
+            var sourceColumns = sourcesRaw.Split(',').Select(c => $"[{c.Trim()}]");
+            var concatExpression = string.Join(" + '|' + ", sourceColumns.Select(c => $"ISNULL(CONVERT(NVARCHAR(MAX), {c}), N'')"));
+            var computedSql = $"HASHBYTES('{algorithm}', {concatExpression})";
+
+            propertyBuilder.ValueGenerated(ValueGenerated.OnAddOrUpdate);
+            propertyBuilder.HasColumnType(SqlHashAlgorithmExtensions.GetRecommendedSqlType(algorithm));
+            propertyBuilder.HasAnnotation(RelationalAnnotationNames.ComputedColumnSql, computedSql);
+            propertyBuilder.HasAnnotation(RelationalAnnotationNames.IsStored, true);
         }
     }
 
@@ -107,7 +112,6 @@ internal class ComputedHashConvention :
         IConventionEntityType entityType,
         IConventionContext<IConventionEntityType> context)
     {
-        // When an entity type is removed, we don't need to do anything special.
-        // The annotations will be automatically cleaned up by EF Core.
+        // Annotations auto-cleanse upon entity removal; no intervention required.
     }
 }

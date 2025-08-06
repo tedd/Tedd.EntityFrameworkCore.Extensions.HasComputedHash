@@ -2,6 +2,7 @@
 
 /// <summary>
 /// Defines constant keys for EF Core annotations to avoid magic strings.
+/// These persist for internal validation but are supplementary to relational annotations.
 /// </summary>
 internal static class AnnotationKeys
 {
