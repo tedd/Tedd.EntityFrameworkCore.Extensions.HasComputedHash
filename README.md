@@ -1,7 +1,7 @@
 # Tedd.EntityFrameworkCore.Extensions.HasComputedHash
 
 [![NuGet Version](https://img.shields.io/nuget/v/Tedd.EntityFrameworkCore.Extensions.HasComputedHash.svg)](https://www.nuget.org/packages/Tedd.EntityFrameworkCore.Extensions.HasComputedHash/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/your-github-username/your-repo/dotnet.yml?branch=main)](https://github.com/your-github-username/your-repo/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/tedd/Tedd.EntityFrameworkCore.Extensions.HasComputedHash/dotnet.yml?branch=main)](https://github.com/tedd/Tedd.EntityFrameworkCore.Extensions.HasComputedHash/actions)
 
 An extension for Entity Framework Core 9 that adds first-class support for creating `PERSISTED` computed hash columns, powered by the native `HASHBYTES` function in SQL Server.
 
